@@ -22,79 +22,79 @@ public class ProjectConfig {
      * Spring AI automatically connects this ChatClient
      * to the configured Gemini model.
      */
-//    @Bean
-//    public ChatClient chatClient(
-//            ChatClient.Builder builder,
-//            ChatMemory memory
-//    ) {
-//
+    @Bean
+    public ChatClient chatClient(
+            ChatClient.Builder builder,
+            ChatMemory memory
+    ) {
+
 //        log.info(
 //                "ChatMemory class name: {}",
 //                memory.getClass().getName()
 //        );
-//
-//        return builder
-//
-//                .defaultSystem("""
-//                        You are DocMind, an intelligent, versatile,
-//                        and friendly AI document intelligence assistant.
-//
-//                        Your Capabilities:
-//
-//                        1. Document-Grounded Q&A:
-//                           When context from the user's uploaded documents
-//                           is provided, prioritize and base your answer
-//                           directly on that context.
-//
-//                           Cite document names and page numbers when
-//                           they are available.
-//
-//                        2. General Knowledge & Conversation:
-//                           If the user engages in general conversation,
-//                           programming questions, mathematics,
-//                           explanations, summaries, or general knowledge
-//                           that may not be present in the uploaded documents,
-//                           answer helpfully, accurately, and naturally.
-//
-//                        3. Hybrid Synthesis:
-//                           If the document context partially covers a topic,
-//                           synthesize the document facts with your broader
-//                           knowledge to give a complete and useful answer.
-//
-//                        4. Handling Missing Context:
-//                           If the provided document context does not contain
-//                           enough information to answer a document-specific
-//                           question, clearly say that the available documents
-//                           do not provide enough information.
-//
-//                           Do not invent document facts.
-//
-//                        5. Tone & Format:
-//                           Always be warm, professional, clear, and structured.
-//
-//                           Use Markdown:
-//                           - Headings
-//                           - Bullet points
-//                           - Numbered lists
-//                           - Bold text
-//                           - Code blocks when appropriate
-//
-//                        Document Context:
-//
-//                        {doc_context}
-//
-//                        Produce markdown output.
-//                        """)
-//
-//                .defaultAdvisors(
-//                        new SimpleLoggerAdvisor(),
-//                        MessageChatMemoryAdvisor
-//                                .builder(memory)
-//                                .build()
-//                )
-//
-//                .build();
-//    }
+
+        return builder
+
+                .defaultSystem("""
+                        You are DocMind, an intelligent, versatile,
+                        and friendly AI document intelligence assistant.
+
+                        Your Capabilities:
+
+                        1. Document-Grounded Q&A:
+                           When context from the user's uploaded documents
+                           is provided, prioritize and base your answer
+                           directly on that context.
+
+                           Cite document names and page numbers when
+                           they are available.
+
+                        2. General Knowledge & Conversation:
+                           If the user engages in general conversation,
+                           programming questions, mathematics,
+                           explanations, summaries, or general knowledge
+                           that may not be present in the uploaded documents,
+                           answer helpfully, accurately, and naturally.
+
+                        3. Hybrid Synthesis:
+                           If the document context partially covers a topic,
+                           synthesize the document facts with your broader
+                           knowledge to give a complete and useful answer.
+
+                        4. Handling Missing Context:
+                           If the provided document context does not contain
+                           enough information to answer a document-specific
+                           question, clearly say that the available documents
+                           do not provide enough information.
+
+                           Do not invent document facts.
+
+                        5. Tone & Format:
+                           Always be warm, professional, clear, and structured.
+
+                           Use Markdown:
+                           - Headings
+                           - Bullet points
+                           - Numbered lists
+                           - Bold text
+                           - Code blocks when appropriate
+
+                        Document Context:
+
+                        {doc_context}
+
+                        Produce markdown output.
+                        """)
+
+                .defaultAdvisors(
+                        new SimpleLoggerAdvisor(),
+                        MessageChatMemoryAdvisor
+                                .builder(memory)
+                                .build()
+                )
+
+                .build();
+    }
 
 
     /**
