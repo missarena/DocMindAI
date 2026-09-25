@@ -20,27 +20,31 @@ spring:
   #open ai configurations
 
   ai:
-    google:
-      genai:
-        api-key: ${GOOGLE_API_KEY}
-        chat:
-          model: gemini-2.5-flash
+    model:
+      chat: ollama
+      embedding: ollama
+
+    ollama:
+      base-url: http://localhost:11434
+
+      chat:
+        model: qwen3:4b
+        options:
           temperature: 0.2
 
-        embedding:
-            api-key: ${GOOGLE_API_KEY}
-            text:
-              model: gemini-embedding-001
-              dimensions: 1536
+      embedding:
+        model: mxbai-embed-large
 
     vectorstore:
       pgvector:
         index-type: HNSW
         distance-type: COSINE_DISTANCE
-        dimensions: 1536
+        dimensions: 1024
         table-name: vector_store
         schema-name: public
         initialize-schema: true
+
+
   servlet:
     multipart:
       max-file-size: 25MB
