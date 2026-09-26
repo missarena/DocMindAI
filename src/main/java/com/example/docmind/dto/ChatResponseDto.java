@@ -15,5 +15,5 @@ public class ChatResponseDto {
     private String answer;
     private String conversationId;
     private List<CitationDto> citations;
-    private Long responseTimMs;
+    private Long responseTimeMs;
 }

@@ -15,7 +15,7 @@ import java.util.UUID;
 public class CitationDto {
 
     private UUID documentId;
-    private String filename;
+    private String fileName;
     private Integer chunkIndex;
     private Integer pageNumber;
     private String snippet;

@@ -37,9 +37,9 @@ public class RagService {
         long startTime = System.currentTimeMillis();
 
 
-        String conversationId = request.getConversationId() != null ? request.getConversationId() : UUID.randomUUID().toString();
-
-        ensureConversationExists(conversationId, request.getQuestion());
+//        String conversationId = request.getConversationId() != null ? request.getConversationId() : UUID.randomUUID().toString();
+//
+//        ensureConversationExists(conversationId, request.getQuestion());
 
         log.info("Processing query: '{}', scoped documentId: {}", request.getQuestion(), request.getDocumentId());
 
@@ -48,7 +48,7 @@ public class RagService {
                 request.getQuestion(),
                 request.getDocumentId(),
                 request.getTopK(),
-                request.getMinSimilarity(),
+                request.getMinSimilarity()
 
         );
 
@@ -57,7 +57,7 @@ public class RagService {
 
         String contextText = buildContextString(similarDocuments);
 
-//        String prompt = buildPrompt(request.getQuestion(), contextText);
+        String prompt = buildPrompt(request.getQuestion(), contextText);
 
         //you have to use conversationId to remember the conversation
         //ChatMemory
@@ -75,46 +75,47 @@ public class RagService {
 
     }
 
-    private void ensureConversationExists(String conversationId, User user, @NotBlank(message = "Question cannot be empty") String question) {
+//    private void ensureConversationExists(String conversationId, User user, @NotBlank(message = "Question cannot be empty") String question) {
+//
+//        conversationRepository.findByIdAndUser(conversationId, user)
+//                .orElseGet(() -> {
+//                    String title = question.length() > 50 ? question.substring(0, 47) + "....." : question;
+//                    return conversationRepository.save(
+//                            Conversation.builder().id(conversationId)
+//                                    .title(title)
+//                                    .user(user)
+//                                    .createdAt(LocalDateTime.now())
+//                                    .updatedAt(LocalDateTime.now())
+//                                    .build()
+//                    );
+//                });
+//
+//
+//    }
 
-        conversationRepository.findByIdAndUser(conversationId, user)
-                .orElseGet(() -> {
-                    String title = question.length() > 50 ? question.substring(0, 47) + "....." : question;
-                    return conversationRepository.save(
-                            Conversation.builder().id(conversationId)
-                                    .title(title)
-                                    .user(user)
-                                    .createdAt(LocalDateTime.now())
-                                    .updatedAt(LocalDateTime.now())
-                                    .build()
-                    );
-                });
-
-
-    }
-
-    public Flux<String> streamQuestionAnswer(ChatRequestDto requestDto, User user) {
+    //this streams
+    public Flux<String> streamQuestionAnswer(ChatRequestDto requestDto) {
         log.info("Streaming query: '{}'", requestDto.getQuestion());
-        String conversationId = requestDto.getConversationId() != null ? requestDto.getConversationId() : UUID.randomUUID().toString();
-        requestDto.setConversationId(conversationId);
-        ensureConversationExists(conversationId, user, requestDto.getQuestion());
+//        String conversationId = requestDto.getConversationId() != null ? requestDto.getConversationId() : UUID.randomUUID().toString();
+//        requestDto.setConversationId(conversationId);
+//        ensureConversationExists(conversationId, requestDto.getQuestion());
 
         List<Document> relevantDocuments = retrieveRelevantDocuments(
                 requestDto.getQuestion(),
                 requestDto.getDocumentId(),
                 requestDto.getTopK(),
-                requestDto.getMinSimilarity(),
-                user
+                requestDto.getMinSimilarity()
+
         );
         String contextText = buildContextString(relevantDocuments);
-//        String userPrompt = buildPrompt(requestDto.getQuestion(), contextText);
+       String userPrompt = buildPrompt(requestDto.getQuestion(), contextText);
         return chatClient.prompt()
-                .system(s-> s.param("doc_context",contextText))
-                .user(requestDto.getQuestion())
-                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, requestDto.getConversationId()))
+                //.system(s-> s.param("doc_context",contextText))
+                .user(userPrompt)
+                //.advisors(a -> a.param(ChatMemory.CONVERSATION_ID, requestDto.getConversationId()))
                 .stream()
-                .content()
-                .concatWith(Flux.just("[DONE]"));
+                .content();
+                //.concatWith(Flux.just("[DONE]"));
 
 
     }
@@ -166,7 +167,7 @@ public class RagService {
     public SearchResultDto searchSimilarChunks(SearchRequestDto request) {
 
 
-        java.util.List<Document> matchedDocs = retrieveRelevantDocuments(request.getQuery(), request.getDocumentId(), request.getTopK(), request.getSimilaritySearch(), user);
+        java.util.List<Document> matchedDocs = retrieveRelevantDocuments(request.getQuery(), request.getDocumentId(), request.getTopK(), request.getSimilaritySearch());
 
         List<CitationDto> citations = matchedDocs.stream().map(this::mapToCitation).toList();
 
@@ -201,7 +202,7 @@ public class RagService {
         if (meta.get("distance") instanceof Number n) {
             score = 1.0 - n.doubleValue();
         }
-        return CitationDto.builder().documentId(docId).fileName((String) meta.getOrDefault("fileName", "Unknown")).chunkIndex(chunkIndex).pageNumber(pageNumber).snippet(document.getText()).similarityScore(score).metadata(meta).build();
+        return CitationDto.builder().documentId(docId).fileName((String) meta.getOrDefault("fileName", "Unknown")).chunkIndex(chunkIndex).pageNumber(pageNumber).snippet(document.getText()).similarityScore(score).metaData(meta).build();
     }
 
 
@@ -221,27 +222,16 @@ public class RagService {
                 searchRequestBuilder.similarityThreshold(effectiveSimilarity);
             }
 
-            FilterExpressionBuilder b = new FilterExpressionBuilder();
-            Filter.Expression filterExpression;
+
+            //Filter.Expression filterExpression;
             if (documentId != null) {
-                log.info("Filtering from document :");
+                FilterExpressionBuilder b = new FilterExpressionBuilder();
+                //log.info("Filtering from document :");
+                 searchRequestBuilder.filterExpression(
 
-                filterExpression =
-                        b.and(
-//                            introduced userId filter
-                                b.eq("userId", user.getId().toString()),
                                 b.eq("documentId", documentId.toString())
-
-                        ).build();
-
-            } else {
-                // introduced userId filter
-                filterExpression = b.eq("userId", user.getId().toString()).build();
-
+                                        .build());
             }
-            searchRequestBuilder.filterExpression(filterExpression);
-
-
             try {
                 List<Document> documents = vectorStore.similaritySearch(searchRequestBuilder.build());
                 log.info("Retrieved {} chunks for query: '{}' (scoped docId: {})", documents.size(), query, documentId);
@@ -256,4 +246,4 @@ public class RagService {
 
     }
 
-}
+
