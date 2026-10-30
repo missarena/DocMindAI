@@ -32,47 +32,62 @@ public class RagService {
     private final AppProperties appProperties;
 
 
+
+
     public ChatResponseDto askQuestion(ChatRequestDto request) {
 
         long startTime = System.currentTimeMillis();
 
+        // Generate an ID if this is a new conversation
+        String conversationId = request.getConversationId() != null
+                ? request.getConversationId()
+                : UUID.randomUUID().toString();
 
-//        String conversationId = request.getConversationId() != null ? request.getConversationId() : UUID.randomUUID().toString();
-//
-//        ensureConversationExists(conversationId, request.getQuestion());
+        log.info("Processing query: '{}', scoped documentId: {}",
+                request.getQuestion(), request.getDocumentId());
 
-        log.info("Processing query: '{}', scoped documentId: {}", request.getQuestion(), request.getDocumentId());
-
-
-        List<Document> similarDocuments = this.retrieveRelevantDocuments(
+        List<Document> similarDocuments = retrieveRelevantDocuments(
                 request.getQuestion(),
                 request.getDocumentId(),
                 request.getTopK(),
                 request.getMinSimilarity()
-
         );
 
+        List<CitationDto> citationDtos = similarDocuments.stream()
+                .map(this::mapToCitation)
+                .toList();
 
-        List<CitationDto> citationDtos = similarDocuments.stream().map(this::mapToCitation).toList();
-
+        // Build document context
         String contextText = buildContextString(similarDocuments);
 
-        String prompt = buildPrompt(request.getQuestion(), contextText);
+        // Include both document context and user question
+        String userPrompt = buildPrompt(
+                request.getQuestion(),
+                contextText
+        );
 
-        //you have to use conversationId to remember the conversation
-        //ChatMemory
-        //ChatMemoryRepository
-        String answer = this.chatClient
+        log.info("Retrieved {} relevant chunks. Context length: {}",
+                similarDocuments.size(), contextText.length());
+
+        // Send the complete prompt to the LLM
+        String answer = chatClient
                 .prompt()
-                .system(s -> s.param("doc_context", contextText))
-                .user(request.getQuestion())
-                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, request.getConversationId()))
-                .call().content();
+                .user(userPrompt)
+                .advisors(a -> a.param(
+                        ChatMemory.CONVERSATION_ID,
+                        conversationId
+                ))
+                .call()
+                .content();
+
         long responseTime = System.currentTimeMillis() - startTime;
-        log.info("Completed Q&A in {} ms with {} citations", responseTime, citationDtos.size());
-        return ChatResponseDto.builder().answer(answer).conversationId(request.getConversationId() != null ? request.getConversationId() : UUID.randomUUID().toString()).citations(citationDtos).responseTimeMs(responseTime).build();
 
-
+        return ChatResponseDto.builder()
+                .answer(answer)
+                .conversationId(conversationId)
+                .citations(citationDtos)
+                .responseTimeMs(responseTime)
+                .build();
     }
 
 //    private void ensureConversationExists(String conversationId, User user, @NotBlank(message = "Question cannot be empty") String question) {
